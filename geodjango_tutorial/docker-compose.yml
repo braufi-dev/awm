@@ -1,0 +1,44 @@
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+
+  pgadmin4:
+    image: dpage/pgadmin4
+    ports:
+      - 20080:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: bujar.raufi@tudublin.ie
+      PGADMIN_DEFAULT_PASSWORD: mypassword
+    volumes:
+     - .:/var/lib/pgadmin
+    depends_on:
+      - postgis
+      - nginx
+  
+  postgis:
+    image: kartoza/postgis
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_HOST: 0.0.0.0
+      POSTGRES_DB: gis
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
+    volumes:
+      - .:/var/lib/postgresql/
+
+  awm_django_app:
+    image: geodjango_tutorial
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - 8001:8001
+    depends_on:
+      - postgis
+      - nginx
+    command: python manage.py runserver 0.0.0.0:8001

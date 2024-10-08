@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Location Details {% endblock %}
+{% block content %}
+        <div id="map"></div>
+        <button onclick="updateLocation()">Update Location</button>
+        <script>
+            var map = L.map('map').setView([{{ location.y }}, {{ location.x }}], 100);
+    
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+    
+            L.marker([{{ location.y }}, {{ location.x }}]).addTo(map)
+                .bindPopup('<b>{{ user.username }}</b><br />')
+                .openPopup();
+        </script>
+    
+    <script>
+        var marker;
+        var circle;
+
+        function updateMap(latitude, longitude, accuracy) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            if (circle) {
+                map.removeLayer(circle);
+            }
+
+            marker = L.marker([latitude, longitude]).addTo(map); 
+            circle = L.circle([latitude, longitude], accuracy).addTo(map);
+        }
+
+        function updateLocation() {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+            var accuracy = position.coords.accuracy; 
+            updateMap(latitude, longitude, accuracy);
+
+            // Send location to Django view
+            fetch('{% url "update_location" %}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'latitude=' + latitude + '&longitude=' + longitude
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Location updated successfully');
+                } else {
+                    console.error('Error updating location');
+                }
+            });
+        },
+        function(error) {
+            console.error('Error getting location:', error);
+        }
+    );
+}
+// Check if user has a saved location and display it on the map
+{% if location %}
+    updateMap({{ location.y }}, {{ location.x }}, 100);  // Replace 100 with desired accuracy
+{% endif %}
+</script>
+
+
+{% endblock%}

@@ -1,0 +1,31 @@
+FROM continuumio/miniconda3
+
+LABEL maintainer="Bujar Raufi"
+
+# I use the geodjango_tutorial as my project name adjust to your project name
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=geodjango_tutorial.settings
+
+RUN mkdir -p /app
+WORKDIR /app
+
+# Create the environment:
+COPY ENV.yml .
+RUN conda env create -f ENV.yml
+
+# Make RUN commands use the new environment:
+SHELL ["conda", "run", "-n", "awm_env", "/bin/bash", "-c"]
+
+# Copy everything in your Django project to the image.
+COPY . /app
+ENV PYTHONPATH="/app"
+
+# The code to run when container is started:
+COPY manage.py .
+ENTRYPOINT ["conda", "run", "-n", "awm_env"]
+
+# Exposing the port that the container will operate feel free to change is port is taken
+EXPOSE 8001
+
+# Start the server when the container starts
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8001"]
