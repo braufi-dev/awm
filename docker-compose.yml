@@ -1,0 +1,46 @@
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - webmap
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "20080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: bujar.raufi@tudublin.ie
+      PGADMIN_DEFAULT_PASSWORD: my_password
+    #volumes:
+    #  - ./pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgis
+
+  postgis:
+    image: postgis/postgis
+    environment:
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
+      POSTGRES_DB: gis
+    #volumes:
+    #  - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  webmap:
+    ports:
+      - "8000:80"
+    build: ./webmap
+    command: uwsgi --ini /app/uwsgi.ini
+    volumes:
+      - ./webmap:/app
+    depends_on:
+      postgis:
+        condition: service_healthy
